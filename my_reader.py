@@ -1,58 +1,95 @@
-import openpyxl
 from DataDriver.AbstractReaderClass import AbstractReaderClass
 from DataDriver.ReaderConfig import TestCaseData
+import pandas as pd
+import math
+from datetime import datetime
+
+_SPECIAL_COLUMNS = {
+    "*** test cases ***",
+    "*** tasks ***",
+    "*test cases*",
+    "*tasks*",
+    "[tags]",
+    "[documentation]",
+}
+
 
 class my_reader(AbstractReaderClass):
-    
+
+    def _normalize_value(self, value):
+        """Normalize value จาก Excel ให้ safe + preserve type"""
+
+        # 1. Handle NaN / None
+        if value is None:
+            return ""
+        if isinstance(value, float) and math.isnan(value):
+            return ""
+
+        # 2. Handle datetime
+        if isinstance(value, (datetime, pd.Timestamp)):
+            return value.strftime("%Y-%m-%d %H:%M:%S")
+
+        # 3. Handle float ที่เป็น integer เช่น 1.0 → 1
+        if isinstance(value, float):
+            if value.is_integer():
+                return int(value)
+            return value
+
+        # 4. Handle string → strip
+        if isinstance(value, str):
+            return value.strip()
+
+        # 5. default → return ตาม type เดิม
+        return value
+
     def get_data_from_source(self):
-        sheet_name = self.kwargs.get('sheet_name', 'Sheet1')
-        file_path = self.file
-        
-        workbook = openpyxl.load_workbook(file_path, data_only=True)
-        sheet = workbook[sheet_name] if sheet_name in workbook.sheetnames else workbook.active
-        
-        # 1. อ่านหัว Column (Row 1)
-        raw_headers = [str(cell.value).strip() if cell.value else None for cell in sheet[1]]
-        
+        sheet = self.reader_config.sheet_name
+        if sheet is None:
+            sheet = 0
+
+        df = pd.read_excel(
+            self.reader_config.file,
+            sheet_name=sheet,
+            engine="openpyxl",   # ชัดเจน ป้องกัน engine เพี้ยน
+        )
+
+        # ไม่ fillna("") เพื่อ preserve type → ไป handle ทีหลัง
+
+        col_map = {col: col.strip().lower() for col in df.columns}
+
         test_data = []
-        
-        # 2. อ่านข้อมูลตั้งแต่แถวที่ 2
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row): continue
-            
-            row_dict = {}
+
+        for _, row in df.iterrows():
+            test_case_name = None
             tags = []
             doc = ""
-            case_name = None
-            
-            # 3. วนลูปเช็คแต่ละ Cell ในแถวเพื่อแยกประเภทข้อมูล
-            for i, column_name in enumerate(raw_headers):
-                if not column_name: continue
-                
-                value = row[i] if i < len(row) else ""
-                
-                # ตรวจสอบหัวข้อพิเศษตามมาตรฐาน DataDriver
-                if column_name.lower().strip() == "*** test cases ***" or column_name.lower().strip() == "*** tasks ***":
-                    case_name = str(value) if value else None
-                elif column_name.lower().strip() == "[tags]":
+            args = {}
+
+            for col in df.columns:
+                raw_value = row[col]
+                value = self._normalize_value(raw_value)
+                normalized = col_map[col]
+
+                # ===== special columns =====
+                if normalized in ("*** test cases ***", "*test cases*",
+                                  "*** tasks ***", "*tasks*"):
+                    test_case_name = value or None
+
+                elif normalized == "[tags]":
                     if value:
-                        # รองรับการแยก tag ด้วย comma หรือ semicolon
-                        tags = [t.strip() for t in str(value).replace(';', ',').split(',')]
-                elif column_name.lower().strip() == "[documentation]":
-                    doc = str(value) if value else ""
+                        tags = [
+                            t.strip()
+                            for t in str(value).replace(";", ",").split(",")
+                            if t.strip()
+                        ]
+
+                elif normalized == "[documentation]":
+                    doc = str(value)
+
                 else:
-                    # ถ้าไม่ใช่หัวข้อพิเศษ ให้มองเป็นตัวแปร (${VarName})
-                    clean_key = f"${{{column_name}}}" if not column_name.startswith("${") else column_name
-                    row_dict[clean_key] = value
-            
-            # 4. สร้าง TestCaseData พร้อมส่ง Tags และ Documentation กลับไป
-            test_data.append(
-                TestCaseData(
-                    test_case_name=case_name, 
-                    arguments=row_dict,
-                    tags=tags,
-                    documentation=doc
-                )
-            )
-            
+                    key = col if col.startswith("${") else f"${{{col.strip()}}}"
+                    args[key] = value
+
+            test_data.append(TestCaseData(test_case_name, args, tags, doc))
+
         return test_data

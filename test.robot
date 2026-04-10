@@ -1,8 +1,8 @@
 *** Settings ***
 Library             DataDriver
-...                     file=${CURDIR}/data.xlsx    
+...                     file=${CURDIR}/data.xlsx
 ...                     reader_class=${CURDIR}/my_reader.py    # ใส่ Path เต็มหรือใช้ ${CURDIR}
-...                     sheet_name=Sheet1    # นี่จะไปอยู่ใน self.kwargs
+...                     sheet_name=Sheet1
 Library             Collections
 
 Test Template       Sum info
@@ -19,7 +19,7 @@ Sum info
     ${massage}    Catenate    SEPARATOR=${\n}
     ...    value a = ${A}
     ...    value b = ${B}
-    ...    sum is : ${A + ${{(${B})}}}
+    ...    sum is : ${A + ${B}}
     ...    -------------------------------
 
     Log    ${massage}    console=${True}
