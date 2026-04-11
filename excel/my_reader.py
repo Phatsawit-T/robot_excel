@@ -200,8 +200,8 @@ class my_reader(AbstractReaderClass):
         wrapped_key = f"${{{bare_key}}}"
 
         if dual_key:
-            return {wrapped_key: value, bare_key: value}
-        return {wrapped_key: value}
+            return {wrapped_key: value}
+        return {bare_key: value}
 
     # ------------------------------------------------------------------
     # Main entry point (called by DataDriver)
