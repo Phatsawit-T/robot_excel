@@ -2,7 +2,7 @@
 Documentation       ตัวอย่างการใช้งาน my_reader.py กับ parameter dual_key=False
 ...
 ...                 เมื่อ dual_key=False → arguments dict จะเก็บเฉพาะ key แบบ ${var}
-...                 เมื่อ dual_key=True  → arguments dict จะเก็บทั้ง ${var} และ var
+...                 เมื่อ dual_key=True    → arguments dict จะเก็บทั้ง ${var} และ var
 ...
 ...                 ตัวอย่างนี้แสดงการเข้าถึง DataDriver suite/test variables
 ...                 และการใช้ bare key (ไม่มี ${...}) ผ่าน DataDriver_TEST_DATA
@@ -34,8 +34,8 @@ Log Variable When dual_key Is False
     [Documentation]    Log test-level variables ที่ DataDriver inject ให้ (scope=Test)
     ...
     ...    เมื่อ dual_key=False จะเห็น arguments dict มีเฉพาะ key แบบ ${var}
-    Log    ${DataDriver_TEST_DATA}            formatter=repr    # robotcode: ignore
-    Log    ${DataDriver_TEST_DATA.arguments}  formatter=repr    # robotcode: ignore
+    Log    ${DataDriver_TEST_DATA}    formatter=repr    # robotcode: ignore
+    Log    ${DataDriver_TEST_DATA.arguments}    formatter=repr    # robotcode: ignore
 
 Log Personal Information
     [Documentation]    ตัวอย่าง use case: ดึงข้อมูลส่วนตัวจาก arguments dict
@@ -47,9 +47,9 @@ Log Personal Information
     ${message}=    Catenate    SEPARATOR=${\n}
     ...    <b>${{'=' * ${15}}} Personal Information ${{'=' * ${15}}}</b>
     ...    First Name : ${info['first_name']}
-    ...    Last Name  : ${info['last_name']}
-    ...    Email      : ${info['email']}
-    ...    Gender     : ${info['gender']}
+    ...    Last Name    : ${info['last_name']}
+    ...    Email    : ${info['email']}
+    ...    Gender    : ${info['gender']}
     ...    <b>${{'=' * ${50}}}</b>
 
     Set Test Message    *HTML*${message}    html=${True}
